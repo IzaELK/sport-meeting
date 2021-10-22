@@ -61,6 +61,7 @@ app.get('/filter-by-sport-type', async (req, res) => {
     let sports = req.query.sport;
     let sport_types: string[] = [];
     if (sports == undefined) {
+        res.status(400)
         res.send("Cannot find sport places without sport type. Try to find with football for ex");
     }
     else {
@@ -99,7 +100,85 @@ app.get('/filter-by-type-and-id', async (req, res) => {
     }
     catch(e: any) {
         res.status(400);
-        res.send("Bad request")
+        res.send("Bad request. Error: " + e)
+    }
+})
+
+app.get('/add-new-place', async (req, res) => {
+    let adress = req.query.adress
+    let type = req.query.type
+    let country = req.query.country
+    let day = req.query.day
+    let from = req.query.from
+    let to = req.query.to
+    let type_sport = req.query.type_sport
+    let sport_types: string[] = [];
+    if (adress == undefined || type == undefined || country == undefined || day == undefined || from == undefined || 
+        to == undefined || type_sport == undefined) {
+        res.status(400)
+        res.send("Missing information to add a new sport place")
+    }
+    else {
+        if (typeof(type_sport) === 'string') {
+            sport_types.push(type_sport);
+        }
+        else if (typeof(type_sport) === 'object'){
+            sport_types = type_sport.toString().split(',');
+        }
+        if (type.toString() == "field" && sport_types.length > 1) {
+            res.status(400)
+            res.send("Field cannot have too much sport, only one sport is accepted in one field")
+        }
+        try {
+            let response = await sport_places_request.addNewSportPlace(adress.toString(), type_sport.toString(),
+            country.toString(), day.toString(), from.toString(), to.toString(), sport_types);
+            res.status(200)
+            res.send(response)
+        }
+        catch(e: any) {
+            res.status(400);
+            res.send("Bad request. Error: " + e)
+        }
+    }
+})
+
+app.get('/add-new-player', async(req,res) => {
+    let adress = req.query.adress
+    let sport = req.query.sport
+    if (adress == undefined || sport == undefined) {
+        res.status(400)
+        res.send("Missing information to add a new player")
+    }
+    else {
+        try {
+            let response = await sport_places_request.addNewPlayer(adress.toString(), sport.toString());
+            res.status(200)
+            res.send(response)
+        }
+        catch(e: any) {
+            res.status(400);
+            res.send("Bad request. Error: " + e)
+        }
+    }
+})
+
+app.get('/remove-player', async(req,res) => {
+    let adress = req.query.adress
+    let sport = req.query.sport
+    if (adress == undefined || sport == undefined) {
+        res.status(400)
+        res.send("Missing information to add a new player")
+    }
+    else {
+        try {
+            let response = await sport_places_request.deletePlayer(adress.toString(), sport.toString());
+            res.status(200)
+            res.send(response)
+        }
+        catch(e: any) {
+            res.status(400);
+            res.send("Bad request. Error: " + e)
+        }
     }
 })
 
