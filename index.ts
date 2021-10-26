@@ -64,10 +64,6 @@ app.get('/near-me', async (req, res) => {
         res.status(400);
         res.send("Bad request: " + e)
     }
-
-    // TODO: fusionner les sports de sport_complex
-    // TODO: ajouter le filtre de sport_type
-    // TODO: add Id
 })
 
 app.get('/filter-by-sport-type', async (req, res) => {
