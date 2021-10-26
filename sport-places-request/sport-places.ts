@@ -48,7 +48,7 @@ export class SportPlaces {
         return deg * (Math.PI/180)
     }
 
-    public async getSportPlacesNearMe(long: number, lat: number, sport_place_type: string): Promise<any> {
+    public async getSportPlacesNearMe(long: number, lat: number, sport_place_type: string, sport_type: string[]): Promise<any> {
         let url = "http://api.geonames.org/countryCodeJSON?lat=" + lat + "&lng=" + long + "&username=phamnuhu"
 
         const response: HttpResponse<string> = await fetch(url, {
@@ -77,10 +77,15 @@ export class SportPlaces {
         let country = data.countryCode;
         let query = "MATCH (Place_name:SportPlace) -[:LOCATE]-> (Adress_name:Adress), (Place_name) -[:HAVE]-> (Sport_name:Sport) "
         query += 'WHERE toUpper(Adress_name.country) = "' + country + '" '
-        query += 'AND toLower(Place_name.type) = "' + sport_place_type + '" '
+        if (sport_place_type != "") {
+            query += 'AND toLower(Place_name.type) = "' + sport_place_type + '" '
+        }
+        if (sport_type.length != 0) {
+            let sport = "[" + sport_type.map(x => "\"" + x + "\"").join(", ") + "]"
+            query += 'AND toLower(Sport_name.name) IN ' + sport + ' '
+        }
         query += "RETURN Adress_name.longtitude, Adress_name.latitude, "
-        query += "Adress_name.adress, Place_name.type, Sport_name.name, Sport_name.nbPlayers;"
-
+        query += "Place_name.id, Adress_name.adress, Place_name.type, Sport_name.name, Sport_name.nbPlayers;"
         try {
             let db_data = await this.retrieve_data_neo4j(query);
             let sport_places = []
@@ -90,12 +95,26 @@ export class SportPlaces {
                 let distance = this.getDistanceFromLatLonInKm(lon, latitude, long, lat)
                 if (distance <= 5) {
                     let sport_place = {
+                        id: db_data[i].get("Place_name.id").low,
                         adress: db_data[i].get("Adress_name.adress"),
                         type: db_data[i].get("Place_name.type"),
-                        sport: db_data[i].get("Sport_name.name"),
-                        nbPlayers: db_data[i].get("Sport_name.nbPlayers").low
+                        sports: [
+                            {
+                                name: db_data[i].get("Sport_name.name"),
+                                nbPlayers: db_data[i].get("Sport_name.nbPlayers").low
+                            }         
+                        ]           
                     }
-                    sport_places.push(sport_place)
+                    let place = sport_places.find(({id}) => id == sport_place.id);
+                    if (place != undefined) {
+                        place.sports.push({
+                            name: sport_place.sports[0].name,
+                            nbPlayers: sport_place.sports[0].nbPlayers
+                        });
+                    }
+                    else {
+                        sport_places.push(sport_place)
+                    }
                 }
             }
             return sport_places
@@ -109,19 +128,33 @@ export class SportPlaces {
         let sport = "[" + type_sport.map(x => "\"" + x + "\"").join(", ") + "]"
         let query = "MATCH (Place_name:SportPlace) -[:LOCATE]-> (Adress_name:Adress), (Place_name) -[:HAVE]-> (Sport_name:Sport) ";
         query += "WHERE toLower(Sport_name.name) IN " + sport;
-        query += " RETURN Adress_name.adress, Sport_name.name, Place_name.type, Sport_name.nbPlayers;"
+        query += " RETURN Place_name.id, Adress_name.adress, Sport_name.name, Place_name.type, Sport_name.nbPlayers;"
 
         try {
             let db_data = await this.retrieve_data_neo4j(query);
             let sport_places = []
             for (let i = 0; i < db_data.length; i++) {
                 let sport_place = {
+                    id: db_data[i].get("Place_name.id").low,
                     adress: db_data[i].get("Adress_name.adress"),
                     type: db_data[i].get("Place_name.type"),
-                    sport: db_data[i].get("Sport_name.name"),
-                    nbPlayers: db_data[i].get("Sport_name.nbPlayers").low
+                    sports: [
+                        {
+                            name: db_data[i].get("Sport_name.name"),
+                            nbPlayers: db_data[i].get("Sport_name.nbPlayers").low
+                        }         
+                    ]           
                 }
-                sport_places.push(sport_place)
+                const place = sport_places.find(({id}) => id == sport_place.id);
+                if (place != undefined) {
+                    place.sports.push({
+                        name: sport_place.sports[0].name,
+                        nbPlayers: sport_place.sports[0].nbPlayers
+                    });
+                }
+                else {
+                    sport_places.push(sport_place)
+                }
             }
             return sport_places
         }
@@ -130,24 +163,40 @@ export class SportPlaces {
         }
     }
 
+    // TODO: Fix Neo4J query (concerning hours and sports - multiple nodes)
     public async getSportPlaceWithID(type_sport_place: string, id: string) {
         let sport_place_type = '"' + type_sport_place + '"';
-        let query = "(Place_name:SportPlace) -[:LOCATE]-> (Adress_name:Adress), (Place_name) -[:OPEN]-> (Hours_name:Hours), (Place_name) -[:HAVE]-> (Sport_name:Sport)";
+        let query = "MATCH (Place_name:SportPlace) -[:LOCATE]-> (Adress_name:Adress), (Place_name) -[:OPEN]-> (Hours_name:Hours), (Place_name) -[:HAVE]-> (Sport_name:Sport)";
         query += " WHERE toLower(Place_name.type) = " + sport_place_type;
         query += " AND Place_name.id = " + id;
-        query += " RETURN Adress_name.adress, Place_name.type, Hours_name.day, Hours_name.from, Hours_name.to, Sport_name.name, Sport_name.nbPlayers;"
+        query += " RETURN Adress_name.adress, Place_name.type, Place_name.id, Hours_name.day, Hours_name.from, Hours_name.to, Sport_name.name, Sport_name.nbPlayers;"
+        console.log(query)
         try {
             let db_data = await this.retrieve_data_neo4j(query);
             let sport_places = []
             for (let i = 0; i < db_data.length; i++) {
                 let sport_place = {
+                    id: db_data[i].get("Place_name.id").low,
                     adress: db_data[i].get("Adress_name.adress"),
                     type: db_data[i].get("Place_name.type"),
                     openHours: db_data[i].get("Hours_name.day") + " de " + db_data[i].get("Hours_name.from") + " à " + db_data[i].get("Hours_name.to"),
-                    sport: db_data[i].get("Sport_name.name"),
-                    nbPlayers: db_data[i].get("Sport_name.nbPlayers").low
+                    sports: [
+                        {
+                            name: db_data[i].get("Sport_name.name"),
+                            nbPlayers: db_data[i].get("Sport_name.nbPlayers").low
+                        }         
+                    ]           
                 }
-                sport_places.push(sport_place)
+                const place = sport_places.find(({id}) => id == sport_place.id);
+                if (place != undefined) {
+                    place.sports.push({
+                        name: sport_place.sports[0].name,
+                        nbPlayers: sport_place.sports[0].nbPlayers
+                    });
+                }
+                else {
+                    sport_places.push(sport_place)
+                }
             }
             return sport_places
         }

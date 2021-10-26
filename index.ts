@@ -45,16 +45,29 @@ app.get('/near-me', async (req, res) => {
     if (sport_place_type == undefined) {
         sport_place_type = ""
     }
-
+    let sport_type = req.query.sport;
+    let sport_types: string[] = [];
+    if (sport_type != undefined) {
+        if (typeof(sport_type) === 'string') {
+            sport_types.push(sport_type);
+        }
+        else if (typeof(sport_type) === 'object'){
+            sport_types = sport_type.toString().split(',');
+        }
+    }
     try {
-        let sport_places = await sport_places_request.getSportPlacesNearMe(long, lat, sport_place_type.toString());   
+        let sport_places = await sport_places_request.getSportPlacesNearMe(long, lat, sport_place_type.toString(), sport_types);   
         res.status(200);
         res.json(sport_places)
     }
     catch(e: any) {
         res.status(400);
-        res.send("Bad request")
+        res.send("Bad request: " + e)
     }
+
+    // TODO: fusionner les sports de sport_complex
+    // TODO: ajouter le filtre de sport_type
+    // TODO: add Id
 })
 
 app.get('/filter-by-sport-type', async (req, res) => {
@@ -130,7 +143,7 @@ app.get('/add-new-place', async (req, res) => {
             res.send("Field cannot have too much sport, only one sport is accepted in one field")
         }
         try {
-            let response = await sport_places_request.addNewSportPlace(adress.toString(), type_sport.toString(),
+            let response = await sport_places_request.addNewSportPlace(adress.toString(), type.toString(),
             country.toString(), day.toString(), from.toString(), to.toString(), sport_types);
             res.status(200)
             res.send(response)
