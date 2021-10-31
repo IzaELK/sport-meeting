@@ -117,7 +117,6 @@ export class SportPlaces {
                     }
                 }
             }
-            console.log(sport_places)
             return sport_places       
         }
         catch (e: any) {
