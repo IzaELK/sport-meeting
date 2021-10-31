@@ -122,6 +122,9 @@ app.get('/add-new-place', async (req, res) => {
     let to = req.query.to
     let type_sport = req.query.type_sport
     let sport_types: string[] = [];
+    let days: string[] = [];
+    let open_from: string[] = [];
+    let closed_at: string[] = []
     if (adress == undefined || type == undefined || country == undefined || day == undefined || from == undefined || 
         to == undefined || type_sport == undefined) {
         res.status(400)
@@ -134,13 +137,31 @@ app.get('/add-new-place', async (req, res) => {
         else if (typeof(type_sport) === 'object'){
             sport_types = type_sport.toString().split(',');
         }
+        if (typeof(day) === 'string') {
+            days.push(day);
+        }
+        else if (typeof(day) === 'object') {
+            days = day.toString().split(',');
+        }
+        if (typeof(from) === 'string') {
+            open_from.push(from);
+        }
+        else if (typeof(from) === 'object') {
+            open_from = from.toString().split(',');
+        }
+        if (typeof(to) === 'string') {
+            closed_at.push(to);
+        }
+        else if (typeof(to) === 'object') {
+            closed_at = to.toString().split(',');
+        }
         if (type.toString() == "field" && sport_types.length > 1) {
             res.status(400)
             res.send("Field cannot have too much sport, only one sport is accepted in one field")
         }
         try {
             let response = await sport_places_request.addNewSportPlace(adress.toString(), type.toString(),
-            country.toString(), day.toString(), from.toString(), to.toString(), sport_types);
+            country.toString(), days, open_from, closed_at, sport_types);
             res.status(200)
             res.send(response)
         }
