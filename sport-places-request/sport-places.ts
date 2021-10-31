@@ -313,7 +313,7 @@ export class SportPlaces {
         query += "SET Sport_name.nbPlayers = Sport_name.nbPlayers + 1;"
         try {
             let db_data = await this.retrieve_data_neo4j(query);
-            return Promise.resolve("A new player is added sucessfully to field")
+            return "A new player is added sucessfully to field"
         }
         catch (e: any) {
             return Promise.reject("Error in adding new player to a field: " + e);
