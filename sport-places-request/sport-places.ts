@@ -117,7 +117,8 @@ export class SportPlaces {
                     }
                 }
             }
-            return sport_places
+            console.log(sport_places)
+            return sport_places       
         }
         catch (e: any) {
             return Promise.reject("Error in getting sport places near me: " + e);
