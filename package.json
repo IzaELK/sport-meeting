@@ -7,7 +7,7 @@
     "start": "concurrently \"npm:build:dev\" \"npm:start:dev\"",
     "build:dev": "tsc",
     "start:dev": "nodemon ./build/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --experimental-modules node_modules/.bin/_mocha -r ts-node/register test/*.test.ts"
   },
   "repository": {
     "type": "git",

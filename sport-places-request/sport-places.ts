@@ -117,7 +117,7 @@ export class SportPlaces {
                     }
                 }
             }
-            return sport_places       
+            return Promise.resolve(sport_places)    
         }
         catch (e: any) {
             return Promise.reject("Error in getting sport places near me: " + e);
@@ -156,7 +156,7 @@ export class SportPlaces {
                     sport_places.push(sport_place)
                 }
             }
-            return sport_places
+            return Promise.resolve(sport_places)
         }
         catch (e: any) {
             return Promise.reject("Error in getting sport places with type sport: " + e);
@@ -184,7 +184,7 @@ export class SportPlaces {
                 }
                 sport_places.push(sport_place)
             }
-            return sport_places
+            return Promise.resolve(sport_places)
         }
         catch (e: any) {
             return Promise.reject("Error in getting sport places with ID: " + e);
@@ -262,7 +262,6 @@ export class SportPlaces {
             query = "MATCH (a:Sport) WITH a ORDER BY a.id DESC LIMIT 1 "
             query += 'CREATE (n:Sport {id: a.id+1, name: "' + sp
             query += '", nbPlayers: 0}) RETURN n.id;'
-            console.log(query)
             try {
                 let new_sport = await this.retrieve_data_neo4j(query);
                 sport_fields_id.push(new_sport[0].get("n.id"));
@@ -283,7 +282,7 @@ export class SportPlaces {
 
         for (let i: number = 0; i < open_hours_id.length; i++) {
             query = "MATCH (Place1:SportPlace), (Hours1:Hours) "
-            query += "WHERE Place1.id=" + sport_place_id + " AND Hours1.id=" + open_hours_id
+            query += "WHERE Place1.id=" + sport_place_id + " AND Hours1.id=" + open_hours_id[i]
             query += " CREATE (Place1) -[:OPEN]-> (Hours1);"
             try {
                 let process_query = await this.retrieve_data_neo4j(query);
@@ -305,7 +304,7 @@ export class SportPlaces {
             }
         }
 
-        return "Adding new sport place sucessfully";
+        return Promise.resolve("Adding new sport place sucessfully");
     }
 
     public async addNewPlayer(adress: string, sport: string) {
@@ -314,7 +313,7 @@ export class SportPlaces {
         query += "SET Sport_name.nbPlayers = Sport_name.nbPlayers + 1;"
         try {
             let db_data = await this.retrieve_data_neo4j(query);
-            return "A new player is added sucessfully to field"
+            return Promise.resolve("A new player is added sucessfully to field")
         }
         catch (e: any) {
             return Promise.reject("Error in adding new player to a field: " + e);
@@ -327,10 +326,48 @@ export class SportPlaces {
         query += "SET Sport_name.nbPlayers = Sport_name.nbPlayers - 1;"
         try {
             let db_data = await this.retrieve_data_neo4j(query);
-            return "A new player is removed sucessfully to field"
+            return Promise.resolve("A new player is removed sucessfully to field")
         }
         catch (e: any) {
             return Promise.reject("Error in removing a player to a field: " + e);
+        }
+    }
+
+    /* For test using */
+    public async deleteRecentSportPlace() {
+        let query: string = "MATCH (a:SportPlace) WITH a ORDER BY a.id DESC LIMIT 1 return a.id;"
+        let sport_place_id: string = ""
+        try {
+            let process_query = await this.retrieve_data_neo4j(query);
+            sport_place_id = process_query[0].get("a.id")
+        }
+        catch (e: any) {
+            return Promise.reject("Error in getting most recent added sport place: " + e);
+        }
+
+        query = "match(n:SportPlace)-[r:HAVE]->(m:Sport) where n.id = " + sport_place_id + " delete m, r;"
+        try {
+            let process_query = await this.retrieve_data_neo4j(query);
+        }
+        catch (e: any) {
+            return Promise.reject("Error in deleting sports and all relationships: " + e);
+        }
+
+        query = "match(n:SportPlace)-[r:OPEN]->(m:Hours) where n.id = " + sport_place_id + " delete m, r;"
+        try {
+            let process_query = await this.retrieve_data_neo4j(query);
+        }
+        catch (e: any) {
+            return Promise.reject("Error in deleting opening hours and all relationships: " + e);
+        }
+
+        query = "match(n:SportPlace)-[r:LOCATE]->(m:Adress) where n.id = " + sport_place_id + " delete n, m, r;"
+        try {
+            let process_query = await this.retrieve_data_neo4j(query);
+            return Promise.resolve("Recent added sport place has been deleted")
+        }
+        catch (e: any) {
+            return Promise.reject("Error in deleting adress, sport place and all relationships: " + e);
         }
     }
 }
