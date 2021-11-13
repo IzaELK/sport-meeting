@@ -97,6 +97,8 @@ export class SportPlaces {
                     let sport_place = {
                         id: db_data[i].get("Place_name.id").low,
                         adress: db_data[i].get("Adress_name.adress"),
+                        latitude: db_data[i].get("Adress_name.latitude"),
+                        longtitude: db_data[i].get("Adress_name.longtitude"),
                         type: db_data[i].get("Place_name.type"),
                         sports: [
                             {
@@ -137,6 +139,8 @@ export class SportPlaces {
                 let sport_place = {
                     id: db_data[i].get("Place_name.id").low,
                     adress: db_data[i].get("Adress_name.adress"),
+                    latitude: db_data[i].get("Adress_name.latitude"),
+                    longtitude: db_data[i].get("Adress_name.longtitude"),
                     type: db_data[i].get("Place_name.type"),
                     sports: [
                         {
